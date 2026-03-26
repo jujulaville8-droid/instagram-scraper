@@ -102,8 +102,7 @@ async function scrapeProfile(page: Page, handle: string): Promise<ProfileData | 
   await page.goto(profileUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await randomDelay(2000, 4000);
 
-  const pageContent = await page.content();
-  if (isBlockedPage(pageContent)) {
+  if (page.url().includes('/accounts/login') || page.url().includes('/challenge')) {
     return null;
   }
 
@@ -191,45 +190,55 @@ export async function scrapeHashtag(
   let context: Awaited<ReturnType<typeof chromium.launchPersistentContext>> | null = null;
 
   try {
-    // Use real Chrome profile for zero-detection scraping
-    // This uses your actual Chrome cookies/session — Instagram sees a real user
-    const useRealProfile = process.env.SCRAPER_USE_CHROME_PROFILE !== 'false';
-    const chromeProfilePath = process.env.CHROME_PROFILE_PATH ??
-      `${process.env.HOME}/Library/Application Support/Google/Chrome/Default`;
+    // Launch headed browser with session cookie + realistic fingerprint
+    console.log('[scraper] Launching browser with session cookie (headed mode)');
+    context = await chromium.launchPersistentContext('', {
+      headless: false,
+      channel: 'chrome', // Use system Chrome binary — more realistic fingerprint
+      viewport: { width: 1280, height: 720 },
+      locale: 'en-US',
+      timezoneId: 'America/New_York',
+      args: [
+        '--no-sandbox',
+        '--disable-blink-features=AutomationControlled', // Hide automation flag
+      ],
+    });
 
-    if (useRealProfile) {
-      console.log('[scraper] Launching with real Chrome profile (zero detection mode)');
-      // Must close Chrome first — can't share profile between two Chrome instances
-      context = await chromium.launchPersistentContext(chromeProfilePath, {
-        headless: false,
-        channel: 'chrome', // Use system Chrome, not Playwright's Chromium
-        viewport: { width: 1280, height: 720 },
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      });
-    } else {
-      console.log('[scraper] Launching fresh browser with session cookie');
-      const headless = process.env.SCRAPER_HEADLESS !== 'false' ? true : false;
-      context = await chromium.launchPersistentContext('', {
-        headless,
-        viewport: { width: 1280, height: 720 },
-        locale: 'en-US',
-        userAgent: getRandomUserAgent(),
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      });
+    // Set all the cookies Instagram expects
+    await context.addCookies([
+      {
+        name: 'sessionid',
+        value: sessionCookie,
+        domain: '.instagram.com',
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None',
+      },
+      {
+        name: 'ig_did',
+        value: crypto.randomUUID(),
+        domain: '.instagram.com',
+        path: '/',
+        secure: true,
+        sameSite: 'None',
+      },
+      {
+        name: 'csrftoken',
+        value: crypto.randomUUID().replace(/-/g, ''),
+        domain: '.instagram.com',
+        path: '/',
+        secure: true,
+        sameSite: 'None',
+      },
+    ]);
 
-      // Set the Instagram session cookie for fresh browser
-      await context.addCookies([
-        {
-          name: 'sessionid',
-          value: sessionCookie,
-          domain: '.instagram.com',
-          path: '/',
-          httpOnly: true,
-          secure: true,
-          sameSite: 'None',
-        },
-      ]);
-    }
+    // Remove the webdriver flag that Instagram uses to detect Playwright
+    const page0 = context.pages()[0] || await context.newPage();
+    await page0.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => false });
+    });
+    await page0.close();
 
     const page = await context.newPage();
 
@@ -237,18 +246,76 @@ export async function scrapeHashtag(
     const cleanedHashtag = hashtag.replace(/^#/, '');
     const hashtagUrl = `https://www.instagram.com/explore/tags/${cleanedHashtag}/`;
 
-    console.log(`[scraper] Navigating to ${hashtagUrl}`);
-    await page.goto(hashtagUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await randomDelay(3000, 5000);
+    // First navigate to Instagram home to check login status
+    console.log('[scraper] Checking login status...');
+    await page.goto('https://www.instagram.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await randomDelay(2000, 3000);
 
-    // Check if we're blocked
+    // If redirected to login, auto-login with credentials
+    if (page.url().includes('/accounts/login')) {
+      const igUser = process.env.INSTAGRAM_USERNAME;
+      const igPass = process.env.INSTAGRAM_PASSWORD;
+      if (igUser && igPass) {
+        console.log('[scraper] Not logged in — auto-logging in...');
+        await page.fill('input[name="username"]', igUser);
+        await randomDelay(500, 1000);
+        await page.fill('input[name="password"]', igPass);
+        await randomDelay(500, 1000);
+        await page.click('button[type="submit"]');
+        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        await randomDelay(3000, 5000);
+        console.log(`[scraper] After login, URL: ${page.url()}`);
+
+        // Handle "Save Login Info" or "Turn On Notifications" popups
+        try {
+          const notNowBtn = page.locator('button:has-text("Not Now"), button:has-text("Not now")').first();
+          if (await notNowBtn.isVisible({ timeout: 3000 })) {
+            await notNowBtn.click();
+            await randomDelay(1000, 2000);
+          }
+        } catch { /* no popup */ }
+        try {
+          const notNowBtn2 = page.locator('button:has-text("Not Now"), button:has-text("Not now")').first();
+          if (await notNowBtn2.isVisible({ timeout: 3000 })) {
+            await notNowBtn2.click();
+            await randomDelay(1000, 2000);
+          }
+        } catch { /* no popup */ }
+      } else {
+        console.log('[scraper] Not logged in and no credentials set. Set INSTAGRAM_USERNAME and INSTAGRAM_PASSWORD.');
+        result.blocked = true;
+        result.error = 'Not logged in. Set INSTAGRAM_USERNAME and INSTAGRAM_PASSWORD in .env.local';
+        return result;
+      }
+    } else {
+      console.log('[scraper] Already logged in!');
+    }
+
+    // Now navigate to hashtag page
+    console.log(`[scraper] Navigating to ${hashtagUrl}`);
+    await page.goto(hashtagUrl, { waitUntil: 'load', timeout: 30000 });
+    await randomDelay(6000, 10000); // Wait for Instagram's JS to fully render content
+
+    // Check if we're blocked (only real blocks, not redirects)
+    const currentUrl = page.url();
     const initialContent = await page.content();
-    if (isBlockedPage(initialContent)) {
-      console.log('[scraper] Blocked on hashtag page - login required or challenge detected');
+    console.log(`[scraper] Current URL after navigation: ${currentUrl}`);
+
+    // Instagram redirects hashtag URLs to search — that's fine, not a block
+    const isLoginRedirect = currentUrl.includes('/accounts/login') || currentUrl.includes('/challenge');
+    if (isLoginRedirect) {
+      await page.screenshot({ path: 'scraper-blocked.png' });
+      console.log('[scraper] Redirected to login page — session expired');
       result.blocked = true;
-      result.error = 'Blocked: Instagram requires login or presented a challenge';
+      result.error = 'Session expired — redirected to login';
       return result;
     }
+    // Only check for hard blocks (URL-based), not content-based — Instagram pages
+    // contain words like "action blocked" in their JS bundles even on normal pages
+
+    // Save a screenshot for debugging
+    await page.screenshot({ path: 'scraper-loaded.png' });
+    console.log('[scraper] Page loaded successfully! Screenshot saved to scraper-loaded.png');
 
     // Extract post links from the hashtag page
     console.log('[scraper] Extracting post links...');
@@ -272,10 +339,9 @@ export async function scrapeHashtag(
         await page.goto(postLink, { waitUntil: 'domcontentloaded', timeout: 30000 });
         await randomDelay(2000, 4000);
 
-        // Check for blocks
-        const postContent = await page.content();
-        if (isBlockedPage(postContent)) {
-          console.log('[scraper] Blocked while visiting post');
+        // Check for login redirect (real block)
+        if (page.url().includes('/accounts/login') || page.url().includes('/challenge')) {
+          console.log('[scraper] Redirected to login — stopping');
           result.blocked = true;
           break;
         }
@@ -302,10 +368,8 @@ export async function scrapeHashtag(
         const profileData = await scrapeProfile(page, handle);
 
         if (profileData === null && !result.blocked) {
-          // Check if this was a block
-          const currentContent = await page.content();
-          if (isBlockedPage(currentContent)) {
-            console.log('[scraper] Blocked while scraping profile');
+          if (page.url().includes('/accounts/login') || page.url().includes('/challenge')) {
+            console.log('[scraper] Redirected to login — stopping');
             result.blocked = true;
             break;
           }

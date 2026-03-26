@@ -14,14 +14,22 @@ export function randomDelay(minMs = 3000, maxMs = 8000): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function isBlockedPage(pageContent: string): boolean {
+export function isBlockedPage(pageContent: string, url: string): boolean {
+  const lower = pageContent.toLowerCase();
+
+  // If we got redirected to login page, we're blocked
+  if (url.includes('/accounts/login') || url.includes('/challenge')) {
+    return true;
+  }
+
+  // Specific block signals — NOT just "login" which appears on every page
   const blockSignals = [
-    'login',
-    'challenge',
     'suspicious activity',
     'confirm your identity',
     'unusual login attempt',
+    'we detected an automated behavior',
+    'please wait a few minutes',
+    'action blocked',
   ];
-  const lower = pageContent.toLowerCase();
   return blockSignals.some(signal => lower.includes(signal));
 }
