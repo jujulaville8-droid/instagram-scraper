@@ -188,34 +188,48 @@ export async function scrapeHashtag(
     error: null,
   };
 
-  let browser;
+  let context: Awaited<ReturnType<typeof chromium.launchPersistentContext>> | null = null;
 
   try {
-    // Launch browser — use headed mode to bypass detection
-    const headless = process.env.SCRAPER_HEADLESS !== 'false' ? true : false;
-    browser = await chromium.launch({
-      headless,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+    // Use real Chrome profile for zero-detection scraping
+    // This uses your actual Chrome cookies/session — Instagram sees a real user
+    const useRealProfile = process.env.SCRAPER_USE_CHROME_PROFILE !== 'false';
+    const chromeProfilePath = process.env.CHROME_PROFILE_PATH ??
+      `${process.env.HOME}/Library/Application Support/Google/Chrome/Default`;
 
-    const context = await browser.newContext({
-      userAgent: getRandomUserAgent(),
-      viewport: { width: 1280, height: 720 },
-      locale: 'en-US',
-    });
+    if (useRealProfile) {
+      console.log('[scraper] Launching with real Chrome profile (zero detection mode)');
+      // Must close Chrome first — can't share profile between two Chrome instances
+      context = await chromium.launchPersistentContext(chromeProfilePath, {
+        headless: false,
+        channel: 'chrome', // Use system Chrome, not Playwright's Chromium
+        viewport: { width: 1280, height: 720 },
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+    } else {
+      console.log('[scraper] Launching fresh browser with session cookie');
+      const headless = process.env.SCRAPER_HEADLESS !== 'false' ? true : false;
+      context = await chromium.launchPersistentContext('', {
+        headless,
+        viewport: { width: 1280, height: 720 },
+        locale: 'en-US',
+        userAgent: getRandomUserAgent(),
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
 
-    // Set the Instagram session cookie
-    await context.addCookies([
-      {
-        name: 'sessionid',
-        value: sessionCookie,
-        domain: '.instagram.com',
-        path: '/',
-        httpOnly: true,
-        secure: true,
-        sameSite: 'None',
-      },
-    ]);
+      // Set the Instagram session cookie for fresh browser
+      await context.addCookies([
+        {
+          name: 'sessionid',
+          value: sessionCookie,
+          domain: '.instagram.com',
+          path: '/',
+          httpOnly: true,
+          secure: true,
+          sameSite: 'None',
+        },
+      ]);
+    }
 
     const page = await context.newPage();
 
@@ -315,13 +329,13 @@ export async function scrapeHashtag(
     }
 
     console.log(`[scraper] Done. Scraped ${result.profiles.length} profiles.`);
-    await browser.close();
+    await context.close();
     return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     result.error = msg;
     console.error(`[scraper] Fatal error: ${msg}`);
-    if (browser) await browser.close();
+    if (context) await context.close();
     return result;
   }
 }
