@@ -178,7 +178,9 @@ export function LeadsTable({ leads: initialLeads, onSelectLead }: LeadsTableProp
                   colSpan={7}
                   className="py-12 text-center text-sm text-zinc-600"
                 >
-                  No leads found
+                  {initialLeads.length === 0
+                    ? "No leads yet. Run a scrape or paste an Instagram URL above."
+                    : "No leads match the current filters."}
                 </TableCell>
               </TableRow>
             ) : (

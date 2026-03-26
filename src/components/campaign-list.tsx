@@ -163,7 +163,7 @@ export function CampaignList({
       {campaigns.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-zinc-800 py-16">
           <Megaphone className="size-8 text-zinc-700" />
-          <p className="text-sm text-zinc-500">No campaigns created yet</p>
+          <p className="text-sm text-zinc-500">No campaigns yet. Create one to organize your outreach.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">

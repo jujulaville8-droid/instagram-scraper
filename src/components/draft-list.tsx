@@ -229,7 +229,9 @@ export function DraftList({
         <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-zinc-800 py-16">
           <FileText className="size-8 text-zinc-700" />
           <p className="text-sm text-zinc-500">
-            {filter === "all" ? "No drafts yet" : `No ${filter} drafts`}
+            {filter === "all"
+              ? "No drafts yet. Generate one from a lead\u2019s detail panel."
+              : `No ${filter} drafts`}
           </p>
         </div>
       ) : (

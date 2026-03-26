@@ -151,7 +151,7 @@ export function HashtagList({
       {hashtags.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-zinc-800 py-16">
           <Hash className="size-8 text-zinc-700" />
-          <p className="text-sm text-zinc-500">No hashtags configured yet</p>
+          <p className="text-sm text-zinc-500">No hashtags configured. Add one to start discovering leads.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
