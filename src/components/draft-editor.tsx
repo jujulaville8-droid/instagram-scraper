@@ -4,10 +4,11 @@ import { useState, useEffect, useTransition } from "react";
 import type { Draft } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Copy, Check, Send } from "lucide-react";
+import { Loader2, Copy, Check, Send, ExternalLink } from "lucide-react";
 
 interface DraftEditorProps {
   leadId: string;
+  instagramHandle: string;
   onGenerateDraft: (leadId: string) => Promise<Draft | null>;
   onGetDrafts: (leadId: string) => Promise<Draft[]>;
   onMarkSent: (draftId: string) => Promise<void>;
@@ -15,6 +16,7 @@ interface DraftEditorProps {
 
 export function DraftEditor({
   leadId,
+  instagramHandle,
   onGenerateDraft,
   onGetDrafts,
   onMarkSent,
@@ -105,7 +107,7 @@ export function DraftEditor({
             placeholder={isGenerating ? "Generating..." : "Draft content..."}
             className="min-h-24 resize-none border-zinc-800 bg-zinc-900/80 text-xs text-zinc-300 placeholder:text-zinc-600"
           />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="xs"
@@ -125,6 +127,16 @@ export function DraftEditor({
                 </>
               )}
             </Button>
+            <a
+              href={`https://www.instagram.com/direct/t/${instagramHandle.replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1.5 border border-sky-500/30 px-2.5 py-1 font-[family-name:var(--font-jetbrains)] text-[10px] font-medium text-sky-400 transition-colors hover:bg-sky-500/10 hover:text-sky-300"
+            >
+              <ExternalLink className="size-3" />
+              Open DM & Copy
+            </a>
             {activeDraftId && (
               <Button
                 variant="outline"

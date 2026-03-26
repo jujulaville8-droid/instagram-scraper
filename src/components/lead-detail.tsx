@@ -165,6 +165,7 @@ export function LeadDetail({
           {/* Drafts */}
           <DraftEditor
             leadId={lead.id}
+            instagramHandle={lead.instagram_handle}
             onGenerateDraft={onGenerateDraft}
             onGetDrafts={onGetDrafts}
             onMarkSent={onMarkDraftSent}
