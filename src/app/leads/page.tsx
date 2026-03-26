@@ -1,8 +1,10 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { enrichProfile } from "@/lib/enrichment";
+import { buildDraftPrompt } from "@/lib/draft-prompt";
+import { generateText } from "@/lib/ai-client";
 import { ManualUrlInput } from "@/components/manual-url-input";
-import { LeadsTable } from "@/components/leads-table";
-import type { Lead, ProfileData } from "@/lib/types";
+import { LeadsPageClient } from "@/app/leads/leads-page-client";
+import type { Lead, Draft, ProfileData } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 
 async function fetchProfileAction(
@@ -72,6 +74,69 @@ async function fetchProfileAction(
   };
 }
 
+async function updateStatusAction(leadId: string, status: string): Promise<void> {
+  "use server";
+  const supabase = createServerClient();
+  await supabase.from("leads").update({ status }).eq("id", leadId);
+  revalidatePath("/leads");
+}
+
+async function updateNotesAction(leadId: string, notes: string): Promise<void> {
+  "use server";
+  const supabase = createServerClient();
+  await supabase.from("leads").update({ notes }).eq("id", leadId);
+}
+
+async function generateDraftAction(leadId: string): Promise<Draft | null> {
+  "use server";
+  const supabase = createServerClient();
+  const { data: lead } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("id", leadId)
+    .single();
+  if (!lead) return null;
+
+  const prompt = buildDraftPrompt({
+    display_name: lead.display_name,
+    bio: lead.bio,
+    bio_keywords: lead.bio_keywords,
+    has_linktree: lead.has_linktree,
+    website_url: lead.website_url,
+    lead_score: lead.lead_score,
+  });
+
+  const content = await generateText(
+    "You are a freelance web developer writing a cold outreach DM to a small business on Instagram. Be genuine, not spammy.",
+    prompt,
+  );
+
+  const { data: draft } = await supabase
+    .from("drafts")
+    .insert({ lead_id: leadId, channel: "dm", content })
+    .select()
+    .single();
+
+  return (draft as Draft) ?? null;
+}
+
+async function getDraftsAction(leadId: string): Promise<Draft[]> {
+  "use server";
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from("drafts")
+    .select("*")
+    .eq("lead_id", leadId)
+    .order("created_at", { ascending: false });
+  return (data as Draft[]) ?? [];
+}
+
+async function markDraftSentAction(draftId: string): Promise<void> {
+  "use server";
+  const supabase = createServerClient();
+  await supabase.from("drafts").update({ is_sent: true }).eq("id", draftId);
+}
+
 export default async function LeadsPage() {
   const supabase = createServerClient();
   const { data, error } = await supabase
@@ -99,8 +164,15 @@ export default async function LeadsPage() {
       {/* Manual URL input */}
       <ManualUrlInput onSubmit={fetchProfileAction} />
 
-      {/* Table */}
-      <LeadsTable leads={leads} />
+      {/* Table + Detail Panel */}
+      <LeadsPageClient
+        leads={leads}
+        updateStatusAction={updateStatusAction}
+        updateNotesAction={updateNotesAction}
+        generateDraftAction={generateDraftAction}
+        getDraftsAction={getDraftsAction}
+        markDraftSentAction={markDraftSentAction}
+      />
     </div>
   );
 }

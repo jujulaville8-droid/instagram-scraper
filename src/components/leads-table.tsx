@@ -43,9 +43,10 @@ const ALL_STATUSES: LeadStatus[] = [
 
 interface LeadsTableProps {
   leads: Lead[];
+  onSelectLead?: (lead: Lead) => void;
 }
 
-export function LeadsTable({ leads: initialLeads }: LeadsTableProps) {
+export function LeadsTable({ leads: initialLeads, onSelectLead }: LeadsTableProps) {
   const [sortField, setSortField] = useState<SortField>("lead_score");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -184,7 +185,10 @@ export function LeadsTable({ leads: initialLeads }: LeadsTableProps) {
               filtered.map((lead) => (
                 <TableRow
                   key={lead.id}
-                  onClick={() => setSelectedId(lead.id)}
+                  onClick={() => {
+                    setSelectedId(lead.id);
+                    onSelectLead?.(lead);
+                  }}
                   className={`cursor-pointer border-zinc-800 transition-colors ${
                     selectedId === lead.id
                       ? "bg-zinc-800/60"
