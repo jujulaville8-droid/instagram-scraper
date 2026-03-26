@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { createServerClient } from "@/lib/supabase/server";
 import { DraftList } from "@/components/draft-list";
 import type { Draft } from "@/lib/types";

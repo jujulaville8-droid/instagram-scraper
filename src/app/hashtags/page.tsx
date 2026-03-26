@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { createServerClient } from "@/lib/supabase/server";
 import { HashtagList } from "@/components/hashtag-list";
 import type { HashtagConfig } from "@/lib/types";

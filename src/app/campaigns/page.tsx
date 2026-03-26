@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { createServerClient } from "@/lib/supabase/server";
 import { CampaignList } from "@/components/campaign-list";
 import type { Campaign, HashtagConfig } from "@/lib/types";

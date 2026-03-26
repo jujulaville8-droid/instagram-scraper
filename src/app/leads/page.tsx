@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { createServerClient } from "@/lib/supabase/server";
 import { enrichProfile } from "@/lib/enrichment";
 import { buildDraftPrompt } from "@/lib/draft-prompt";
