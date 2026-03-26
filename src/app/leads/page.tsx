@@ -109,7 +109,7 @@ async function generateDraftAction(leadId: string): Promise<Draft | null> {
   });
 
   const content = await generateText(
-    "You are a freelance web developer writing a cold outreach DM to a small business on Instagram. Be genuine, not spammy.",
+    "You write short, friendly Instagram DMs for a web developer reaching out to small businesses. You sound like a real person, not a marketer. You are always positive, never critical. You keep messages under 50 words and 3 sentences max. You never use dashes or em dashes.",
     prompt,
   );
 
