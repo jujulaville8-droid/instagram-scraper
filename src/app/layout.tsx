@@ -39,7 +39,7 @@ export default function RootLayout({
         {/* Radial glow from top-left */}
         <div className="pointer-events-none fixed -left-40 -top-40 z-0 h-[600px] w-[600px] rounded-full bg-emerald-500/[0.04] blur-[120px]" />
         <Nav />
-        <main className="relative z-10 ml-[240px] flex-1 p-10">{children}</main>
+        <main className="relative z-10 flex-1 p-4 pt-16 md:ml-[240px] md:p-10 md:pt-10">{children}</main>
       </body>
     </html>
   );

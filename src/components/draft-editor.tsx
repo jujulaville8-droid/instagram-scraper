@@ -80,6 +80,18 @@ export function DraftEditor({
         Drafts
       </span>
 
+      {/* Always-visible: Open Profile button */}
+      <a
+        href={`https://www.instagram.com/${instagramHandle.replace('@', '')}/`}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={currentDraft ? handleCopy : undefined}
+        className="inline-flex w-fit items-center gap-2 border border-sky-500/30 bg-sky-500/[0.06] px-3 py-2 font-[family-name:var(--font-jetbrains)] text-[11px] font-medium text-sky-400 transition-colors hover:bg-sky-500/15 hover:text-sky-300"
+      >
+        <ExternalLink className="size-3.5" />
+        {currentDraft ? "Copy Draft & Open Profile" : "Open Instagram Profile"}
+      </a>
+
       {/* Generate button */}
       <Button
         variant="outline"
@@ -108,12 +120,10 @@ export function DraftEditor({
             className="min-h-24 resize-none border-zinc-800 bg-zinc-900/80 text-xs text-zinc-300 placeholder:text-zinc-600"
           />
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="xs"
+            <button
               onClick={handleCopy}
               disabled={!currentDraft}
-              className="border-zinc-700 text-zinc-400 hover:text-zinc-200"
+              className="inline-flex items-center gap-1.5 border border-zinc-700 px-2.5 py-1 text-[10px] font-medium text-zinc-400 transition-colors hover:text-zinc-200 disabled:opacity-50"
             >
               {copied ? (
                 <>
@@ -126,28 +136,16 @@ export function DraftEditor({
                   Copy
                 </>
               )}
-            </Button>
-            <a
-              href={`https://www.instagram.com/${instagramHandle.replace('@', '')}/`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleCopy}
-              className="inline-flex items-center gap-1.5 border border-sky-500/30 px-2.5 py-1 font-[family-name:var(--font-jetbrains)] text-[10px] font-medium text-sky-400 transition-colors hover:bg-sky-500/10 hover:text-sky-300"
-            >
-              <ExternalLink className="size-3" />
-              Copy & Open Profile
-            </a>
+            </button>
             {activeDraftId && (
-              <Button
-                variant="outline"
-                size="xs"
+              <button
                 onClick={handleMarkSent}
                 disabled={isSending}
-                className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                className="inline-flex items-center gap-1.5 border border-emerald-500/30 px-2.5 py-1 text-[10px] font-medium text-emerald-400 transition-colors hover:bg-emerald-500/10 disabled:opacity-50"
               >
                 <Send className="size-3" />
                 Mark as Sent
-              </Button>
+              </button>
             )}
           </div>
         </div>

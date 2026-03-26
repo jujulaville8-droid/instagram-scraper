@@ -59,7 +59,7 @@ export function LeadDetail({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="flex w-full flex-col overflow-y-auto border-zinc-800 bg-zinc-950 sm:max-w-lg"
+        className="flex w-full flex-col overflow-y-auto border-emerald-500/10 bg-[#080b10] sm:max-w-lg"
       >
         <SheetHeader className="gap-0 border-b border-zinc-800 pb-4">
           {/* Header: avatar + handle + name + score */}

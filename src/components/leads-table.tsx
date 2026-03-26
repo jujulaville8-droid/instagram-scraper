@@ -146,7 +146,7 @@ export function LeadsTable({ leads: initialLeads, onSelectLead }: LeadsTableProp
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden border border-emerald-500/10 bg-[#0a0d12]/60 backdrop-blur-sm">
+      <div className="overflow-x-auto border border-emerald-500/10 bg-[#0a0d12]/60 backdrop-blur-sm">
         <Table>
           <TableHeader>
             <TableRow className="border-emerald-500/10 bg-zinc-900/30 hover:bg-transparent">
