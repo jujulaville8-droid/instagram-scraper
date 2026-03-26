@@ -18,18 +18,18 @@ import {
 } from "@/components/ui/select";
 import { LeadScoreBadge } from "@/components/lead-score-badge";
 import type { Lead, LeadStatus } from "@/lib/types";
-import { ArrowUpDown } from "lucide-react";
+// Using inline SVG for sort icon to avoid lucide dependency issues
 
 type SortField = "lead_score" | "created_at" | "display_name";
 type SortDir = "asc" | "desc";
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
-  new: "bg-zinc-600/20 text-zinc-400 border-zinc-600/30",
-  reviewed: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  contacted: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  replied: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  converted: "bg-emerald-400/20 text-emerald-300 border-emerald-400/30",
-  dismissed: "bg-red-500/20 text-red-400 border-red-500/30",
+  new: "border-zinc-700/40 bg-zinc-800/30 text-zinc-500",
+  reviewed: "border-sky-500/30 bg-sky-500/10 text-sky-400",
+  contacted: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+  replied: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+  converted: "border-emerald-400/40 bg-emerald-400/15 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.1)]",
+  dismissed: "border-red-500/20 bg-red-500/10 text-red-400/70",
 };
 
 const ALL_STATUSES: LeadStatus[] = [
@@ -89,12 +89,12 @@ export function LeadsTable({ leads: initialLeads, onSelectLead }: LeadsTableProp
     return (
       <button
         onClick={() => toggleSort(field)}
-        className="inline-flex items-center gap-1 text-zinc-400 hover:text-zinc-200"
+        className="inline-flex items-center gap-1.5 text-zinc-400 transition-colors hover:text-emerald-400"
       >
         {children}
-        <ArrowUpDown
-          className={`size-3 ${sortField === field ? "text-emerald-400" : "text-zinc-600"}`}
-        />
+        <span className={`text-[8px] ${sortField === field ? "text-emerald-400" : "text-zinc-700"}`}>
+          {sortField === field ? (sortDir === "desc" ? "▼" : "▲") : "⇅"}
+        </span>
       </button>
     );
   }
@@ -104,14 +104,14 @@ export function LeadsTable({ leads: initialLeads, onSelectLead }: LeadsTableProp
       {/* Filter row */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-medium uppercase tracking-widest text-zinc-500">
+          <span className="font-[family-name:var(--font-jetbrains)] text-[8px] font-medium uppercase tracking-[0.25em] text-zinc-600">
             Status
           </span>
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
-            <SelectTrigger className="h-7 w-[120px] border-zinc-800 bg-zinc-900 text-xs text-zinc-300">
+            <SelectTrigger className="h-7 w-[120px] border-emerald-500/10 bg-[#0a0d12] text-xs text-zinc-300">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="border-zinc-800 bg-zinc-900">
+            <SelectContent className="border-emerald-500/10 bg-[#0a0d12]">
               <SelectItem value="all">All</SelectItem>
               {ALL_STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
@@ -123,14 +123,14 @@ export function LeadsTable({ leads: initialLeads, onSelectLead }: LeadsTableProp
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-medium uppercase tracking-widest text-zinc-500">
+          <span className="font-[family-name:var(--font-jetbrains)] text-[8px] font-medium uppercase tracking-[0.25em] text-zinc-600">
             Min Score
           </span>
           <Select value={minScore} onValueChange={(v) => setMinScore(v ?? "0")}>
-            <SelectTrigger className="h-7 w-[80px] border-zinc-800 bg-zinc-900 text-xs text-zinc-300">
+            <SelectTrigger className="h-7 w-[80px] border-emerald-500/10 bg-[#0a0d12] text-xs text-zinc-300">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="border-zinc-800 bg-zinc-900">
+            <SelectContent className="border-emerald-500/10 bg-[#0a0d12]">
               <SelectItem value="0">0+</SelectItem>
               <SelectItem value="20">20+</SelectItem>
               <SelectItem value="40">40+</SelectItem>
@@ -140,33 +140,33 @@ export function LeadsTable({ leads: initialLeads, onSelectLead }: LeadsTableProp
           </Select>
         </div>
 
-        <span className="ml-auto text-[10px] font-medium uppercase tracking-widest text-zinc-600">
+        <span className="ml-auto font-[family-name:var(--font-jetbrains)] text-[9px] font-medium uppercase tracking-[0.2em] text-zinc-700">
           {filtered.length} lead{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden border border-zinc-800">
+      <div className="overflow-hidden border border-emerald-500/10 bg-[#0a0d12]/60 backdrop-blur-sm">
         <Table>
           <TableHeader>
-            <TableRow className="border-zinc-800 hover:bg-transparent">
-              <TableHead className="w-10 text-[10px] uppercase tracking-widest text-zinc-500" />
-              <TableHead className="text-[10px] uppercase tracking-widest text-zinc-500">
+            <TableRow className="border-emerald-500/10 bg-zinc-900/30 hover:bg-transparent">
+              <TableHead className="w-10 font-[family-name:var(--font-jetbrains)] text-[9px] uppercase tracking-[0.2em] text-zinc-600" />
+              <TableHead className="font-[family-name:var(--font-jetbrains)] text-[9px] uppercase tracking-[0.2em] text-zinc-600">
                 Handle
               </TableHead>
-              <TableHead className="text-[10px] uppercase tracking-widest text-zinc-500">
+              <TableHead className="font-[family-name:var(--font-jetbrains)] text-[9px] uppercase tracking-[0.2em] text-zinc-600">
                 <SortButton field="display_name">Name</SortButton>
               </TableHead>
-              <TableHead className="text-[10px] uppercase tracking-widest text-zinc-500">
+              <TableHead className="font-[family-name:var(--font-jetbrains)] text-[9px] uppercase tracking-[0.2em] text-zinc-600">
                 <SortButton field="lead_score">Score</SortButton>
               </TableHead>
-              <TableHead className="text-[10px] uppercase tracking-widest text-zinc-500">
+              <TableHead className="font-[family-name:var(--font-jetbrains)] text-[9px] uppercase tracking-[0.2em] text-zinc-600">
                 Hashtag
               </TableHead>
-              <TableHead className="text-[10px] uppercase tracking-widest text-zinc-500">
+              <TableHead className="font-[family-name:var(--font-jetbrains)] text-[9px] uppercase tracking-[0.2em] text-zinc-600">
                 Status
               </TableHead>
-              <TableHead className="text-[10px] uppercase tracking-widest text-zinc-500">
+              <TableHead className="font-[family-name:var(--font-jetbrains)] text-[9px] uppercase tracking-[0.2em] text-zinc-600">
                 <SortButton field="created_at">Added</SortButton>
               </TableHead>
             </TableRow>
@@ -191,10 +191,10 @@ export function LeadsTable({ leads: initialLeads, onSelectLead }: LeadsTableProp
                     setSelectedId(lead.id);
                     onSelectLead?.(lead);
                   }}
-                  className={`cursor-pointer border-zinc-800 transition-colors ${
+                  className={`cursor-pointer border-emerald-500/[0.06] transition-all duration-150 ${
                     selectedId === lead.id
-                      ? "bg-zinc-800/60"
-                      : "hover:bg-zinc-900"
+                      ? "bg-emerald-500/[0.06] shadow-[inset_2px_0_0_rgba(16,185,129,0.5)]"
+                      : "hover:bg-zinc-800/40"
                   }`}
                 >
                   {/* Avatar */}
@@ -215,7 +215,7 @@ export function LeadsTable({ leads: initialLeads, onSelectLead }: LeadsTableProp
                   </TableCell>
 
                   {/* Handle */}
-                  <TableCell className="font-mono text-xs text-emerald-400">
+                  <TableCell className="font-[family-name:var(--font-jetbrains)] text-xs text-emerald-400/80">
                     {lead.instagram_handle}
                   </TableCell>
 
@@ -237,14 +237,14 @@ export function LeadsTable({ leads: initialLeads, onSelectLead }: LeadsTableProp
                   {/* Status */}
                   <TableCell>
                     <span
-                      className={`inline-flex items-center border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${STATUS_COLORS[lead.status]}`}
+                      className={`inline-flex items-center border px-2 py-0.5 font-[family-name:var(--font-jetbrains)] text-[9px] font-medium uppercase tracking-[0.15em] ${STATUS_COLORS[lead.status]}`}
                     >
                       {lead.status}
                     </span>
                   </TableCell>
 
                   {/* Created */}
-                  <TableCell className="text-xs tabular-nums text-zinc-500">
+                  <TableCell className="font-[family-name:var(--font-jetbrains)] text-[11px] tabular-nums text-zinc-600">
                     {new Date(lead.created_at).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
