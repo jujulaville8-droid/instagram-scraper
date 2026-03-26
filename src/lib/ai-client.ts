@@ -19,7 +19,7 @@ export async function generateText(systemPrompt: string, userPrompt: string): Pr
   const { default: Anthropic } = await import('@anthropic-ai/sdk');
   const anthropic = new Anthropic({ apiKey: process.env.AI_API_KEY });
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 200,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
