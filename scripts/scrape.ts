@@ -10,7 +10,7 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env.local') });
 
 const API_BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 const API_SECRET = process.env.API_SECRET;
-const SESSION_COOKIE = process.env.INSTAGRAM_SESSION_ID;
+const SESSION_COOKIE = process.env.INSTAGRAM_SESSION_COOKIE;
 const QUEUE_FILE = path.resolve(__dirname, '..', '.scrape-queue.json');
 
 interface QueueEntry {
@@ -95,7 +95,7 @@ function queueLocally(hashtag: string, profiles: ProfileData[]): void {
 
 async function processHashtag(hashtag: string): Promise<void> {
   if (!SESSION_COOKIE) {
-    console.error('[cli] INSTAGRAM_SESSION_ID not set in .env.local');
+    console.error('[cli] INSTAGRAM_SESSION_COOKIE not set in .env.local');
     process.exit(1);
   }
 

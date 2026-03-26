@@ -191,9 +191,10 @@ export async function scrapeHashtag(
   let browser;
 
   try {
-    // Launch headless browser
+    // Launch browser — use headed mode to bypass detection
+    const headless = process.env.SCRAPER_HEADLESS !== 'false' ? true : false;
     browser = await chromium.launch({
-      headless: true,
+      headless,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
 

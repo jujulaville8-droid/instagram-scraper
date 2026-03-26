@@ -52,9 +52,26 @@ export async function POST(request: NextRequest) {
     // Public endpoint failed, fall through
   }
 
-  return NextResponse.json({
-    error: 'Instagram public API blocked. Run the scraper locally to fetch this profile.',
-    handle,
-    fallback: 'scraper',
-  }, { status: 503 });
+  // Fallback: create a minimal lead from just the handle
+  // User can enrich it manually later
+  const minimalProfile: ProfileData = {
+    instagram_handle: `@${handle}`,
+    display_name: body.display_name ?? null,
+    bio: body.bio ?? null,
+    profile_pic_url: null,
+    follower_count: body.follower_count ?? 0,
+    following_count: body.following_count ?? 0,
+    post_count: body.post_count ?? 0,
+    website_url: body.website_url ?? null,
+  };
+
+  const enriched = enrichProfile(minimalProfile, 'manual', 'manual');
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from('leads')
+    .upsert(enriched, { onConflict: 'instagram_handle', ignoreDuplicates: false })
+    .select().single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ lead: data, method: 'fallback_minimal' });
 }
