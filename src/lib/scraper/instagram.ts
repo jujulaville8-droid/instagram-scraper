@@ -78,7 +78,7 @@ async function extractHandleFromPost(page: Page): Promise<string | null> {
     )
     .catch(() => null);
 
-  if (handle) return handle;
+  if (handle && isValidHandle(handle)) return handle;
 
   // Fallback: look for the username in the page URL structure or meta tags
   const ogUrl = await page
@@ -86,12 +86,38 @@ async function extractHandleFromPost(page: Page): Promise<string | null> {
     .catch(() => null);
 
   if (ogUrl) {
-    // OG description often starts with "X Likes, Y Comments - @username ..."
     const usernameMatch = ogUrl.match(/@([a-zA-Z0-9._]+)/);
-    if (usernameMatch) return usernameMatch[1];
+    if (usernameMatch && isValidHandle(usernameMatch[1])) return usernameMatch[1];
   }
 
   return null;
+}
+
+/**
+ * Filter out fake handles that are actually email domains, websites, or generic words.
+ */
+function isValidHandle(handle: string): boolean {
+  const lower = handle.toLowerCase();
+
+  // Reject email domains
+  if (lower.endsWith('.com') || lower.endsWith('.net') || lower.endsWith('.org') ||
+      lower.endsWith('.co') || lower.endsWith('.io') || lower.endsWith('.ag') ||
+      lower.endsWith('.gov') || lower.endsWith('.edu')) {
+    return false;
+  }
+
+  // Reject known non-business handles
+  const blacklist = [
+    'gmail', 'hotmail', 'outlook', 'yahoo', 'instagram', 'facebook',
+    'twitter', 'tiktok', 'youtube', 'tripadvisor', 'followers',
+    'explore', 'reels', 'stories', 'p', 'reel',
+  ];
+  if (blacklist.includes(lower)) return false;
+
+  // Must be at least 2 characters
+  if (handle.length < 2) return false;
+
+  return true;
 }
 
 /**
@@ -141,28 +167,55 @@ async function scrapeProfile(page: Page, handle: string): Promise<ProfileData | 
         .catch(() => null);
     });
 
-  // Extract website URL from the profile
-  const websiteUrl = await page
-    .$eval('header a[rel="me nofollow noopener noreferrer"]', el => el.getAttribute('href'))
-    .catch(async () => {
-      // Fallback: look for external link in bio area
-      return page
-        .$eval(
-          'header a[href^="https://l.instagram.com/"]',
-          el => {
-            const href = el.getAttribute('href');
-            if (!href) return null;
-            // Extract the actual URL from Instagram's redirect
-            try {
-              const url = new URL(href);
-              return url.searchParams.get('u') ?? href;
-            } catch {
-              return href;
-            }
-          },
-        )
-        .catch(() => null);
-    });
+  // Extract website URL from the profile — try multiple approaches
+  const websiteUrl = await page.evaluate(() => {
+    // Method 1: Look for any external link in the bio/header area
+    const externalLinks = document.querySelectorAll('a[href*="l.instagram.com"], a[rel*="nofollow"]');
+    for (const link of externalLinks) {
+      const href = link.getAttribute('href');
+      if (!href) continue;
+      // Skip internal Instagram links
+      if (href.includes('instagram.com/') && !href.includes('l.instagram.com')) continue;
+      // Extract real URL from Instagram's redirect wrapper
+      if (href.includes('l.instagram.com')) {
+        try {
+          const url = new URL(href);
+          const real = url.searchParams.get('u');
+          if (real) return decodeURIComponent(real);
+        } catch { /* continue */ }
+      }
+      if (!href.startsWith('/') && !href.includes('instagram.com')) return href;
+    }
+
+    // Method 2: Look for visible link text that looks like a URL
+    const allLinks = document.querySelectorAll('a');
+    for (const link of allLinks) {
+      const text = link.textContent?.trim() ?? '';
+      const href = link.getAttribute('href') ?? '';
+      // Link text that looks like a domain
+      if (text.match(/^[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}/) && !text.includes('instagram.com')) {
+        if (href.includes('l.instagram.com')) {
+          try {
+            const url = new URL(href);
+            const real = url.searchParams.get('u');
+            if (real) return decodeURIComponent(real);
+          } catch { /* continue */ }
+        }
+        return text.startsWith('http') ? text : `https://${text}`;
+      }
+    }
+
+    // Method 3: Check the page's JSON data (Instagram embeds profile data in script tags)
+    const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    for (const script of scripts) {
+      try {
+        const data = JSON.parse(script.textContent ?? '');
+        if (data.url && !data.url.includes('instagram.com')) return data.url;
+      } catch { /* continue */ }
+    }
+
+    return null;
+  }).catch(() => null);
 
   return buildProfileData(
     handle,
