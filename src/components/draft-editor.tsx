@@ -128,14 +128,14 @@ export function DraftEditor({
               )}
             </Button>
             <a
-              href={`https://www.instagram.com/direct/t/${instagramHandle.replace('@', '')}`}
+              href={`https://www.instagram.com/${instagramHandle.replace('@', '')}/`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={handleCopy}
               className="inline-flex items-center gap-1.5 border border-sky-500/30 px-2.5 py-1 font-[family-name:var(--font-jetbrains)] text-[10px] font-medium text-sky-400 transition-colors hover:bg-sky-500/10 hover:text-sky-300"
             >
               <ExternalLink className="size-3" />
-              Open DM & Copy
+              Copy & Open Profile
             </a>
             {activeDraftId && (
               <Button
